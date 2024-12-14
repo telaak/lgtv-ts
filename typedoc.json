@@ -1,0 +1,6 @@
+{
+  "entryPointStrategy": "expand",
+  "tsconfig": "tsconfig.json",
+  "readme": "README.md",
+  "entryPoints": ["src/index.ts", "src/helpers"],
+}

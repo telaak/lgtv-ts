@@ -1,0 +1,35 @@
+{
+  "name": "lgtv-ts",
+  "version": "1.0.0",
+  "description": "TypeScript API for controlling LG smart TVs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/telaak/lgtv-ts.git"
+  },
+  "keywords": [
+    "LG"
+  ],
+  "author": "Teemu L.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/telaak/lgtv-ts/issues"
+  },
+  "homepage": "https://github.com/telaak/lgtv-ts#readme",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "debounce": "^2.2.0",
+    "node-wol": "^0.1.1",
+    "partysocket": "^1.0.3",
+    "uuid": "^11.0.3",
+    "ws": "^8.18.0"
+  }
+}
