@@ -38,6 +38,17 @@ const tvHandler = new LGTVHandler(
 
 ### Examples
 
+## Power
+Quoted from [here](https://github.com/JPersson77/LGTVCompanion)
+
+"For the CX line of displays this is accomplished by navigating to Settings (cog button on remote)->All Settings->Connection->Mobile Connection Management->TV On with Mobile, and then enable 'Turn On via Wi-Fi'. For C1, C2 and C3 it's All Settings->General->Devices->External Devices->TV On With Mobile->Turn on via Wi-Fi"
+
+Toggle power; newer TVs support active standby, where the WebSocket is kept open indefinitely and can be used to power back on. Older models can be woken up with Wake-on-Lan (that's what the TV's MAC address is for)
+
+```TypeScript
+await tvHandler.togglePower()
+```
+
 Get a list of available apps
 
 ```TypeScript
