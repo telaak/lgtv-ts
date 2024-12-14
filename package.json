@@ -1,6 +1,6 @@
 {
   "name": "lgtv-ts",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "TypeScript API for controlling LG smart TVs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,6 +29,7 @@
     "debounce": "^2.2.0",
     "node-wol": "^0.1.1",
     "partysocket": "^1.0.3",
+    "set-interval-async": "^3.0.3",
     "uuid": "^11.0.3",
     "ws": "^8.18.0"
   }

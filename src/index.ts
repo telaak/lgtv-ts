@@ -21,6 +21,11 @@ import { SoundOutput } from "./helpers/enums";
 import debounce from "debounce";
 import { pairing } from "./pairing";
 import { cwd } from "process";
+import {
+  setIntervalAsync,
+  clearIntervalAsync,
+  SetIntervalAsyncTimer,
+} from "set-interval-async";
 
 /**
  * Debounced logger to prevent excessive logging.
@@ -54,7 +59,7 @@ export class LGTVHandler {
   // Indicates if the handler is registered with the TV
   public isRegistered: boolean;
   // Interval ID for the audio checker
-  public audioCheckInterval?: ReturnType<typeof setInterval>;
+  private audioCheckInterval?: SetIntervalAsyncTimer<any>;
 
   /**
    * Initializes a new instance of the LGTVHandler class.
@@ -139,7 +144,6 @@ export class LGTVHandler {
     prefix = `ssap://`
   ): Promise<LGWebSocketResponse> {
     return new Promise(async (resolve, reject) => {
-
       /**
        * If it's a request, check that the WebSocket is opened and registered
        * Reject the promise after a 5000ms timeout
@@ -153,10 +157,10 @@ export class LGTVHandler {
         }
 
       const id = uuidv4(); // Generate a unique ID for the message
-      /**  
+      /**
        * Listener checks for messages containing the ID used
        * Returns the promise if found, otherwise rejects after 5000ms
-       */ 
+       */
       const listener = (event: MessageEvent) => {
         try {
           const json = JSON.parse(event.data.toString());
@@ -349,7 +353,7 @@ export class LGTVHandler {
    */
   stopAudioChecker() {
     if (this.audioCheckInterval) {
-      clearInterval(this.audioCheckInterval);
+      clearIntervalAsync(this.audioCheckInterval);
     }
   }
 
@@ -367,14 +371,20 @@ export class LGTVHandler {
 
     this.stopAudioChecker();
 
-    this.audioCheckInterval = setInterval(async () => {
+    this.audioCheckInterval = setIntervalAsync(async () => {
       try {
         if (this.isConnected && this.isRegistered) {
           const soundRequest = await this.getSoundOutput();
           if (soundRequest.payload.soundOutput !== soundOutput) {
-            await waitResolve(2500);
             console.log(`setting audio output to ${soundOutput}`);
-            await this.setSoundOutput(soundOutput);
+            try {
+              // hit 'em with the triply whammy
+              await this.setSoundOutput(soundOutput);
+              await this.setSoundOutput(SoundOutput.Internal_Speaker);
+              await this.setSoundOutput(soundOutput);
+            } catch (error) {
+              await this.setSoundOutput(soundOutput);
+            }
           }
         }
       } catch (error) {
