@@ -1,0 +1,6 @@
+docs
+src
+keys
+tsconfig.json
+typedoc.json
+.gitattributes
