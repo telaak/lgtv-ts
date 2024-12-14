@@ -6,7 +6,7 @@ import {
   waitResolve,
 } from "./helpers/functions";
 import { v4 as uuidv4 } from "uuid";
-import { readdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import {
   AudioStatusResponse,
   GetAppsResponse,
@@ -19,7 +19,7 @@ import {
 } from "./helpers/types";
 import { SoundOutput } from "./helpers/enums";
 import debounce from "debounce";
-import { pairing } from "./pairing"
+import { pairing } from "./pairing";
 import { cwd } from "process";
 const debounceLog = debounce(console.log, 2500, {
   immediate: true,
@@ -34,13 +34,21 @@ export class LGTVHandler {
   public ws: ReconnectingWebSocket;
   public isConnected: boolean;
   public isRegistered: boolean;
+  public keyPath: string;
 
-  constructor(protocol: string, ip: string, port: number, macAddress: string) {
+  constructor(
+    protocol: string,
+    ip: string,
+    port: number,
+    macAddress: string,
+    keyPath?: string
+  ) {
     this.protocol = protocol;
     this.ip = ip;
     this.port = port;
     this.uri = `${protocol}://${ip}:${port}`;
     this.macAddress = macAddress;
+    this.keyPath = keyPath || `${cwd()}/keys`;
     this.ws = new ReconnectingWebSocket(this.uri, undefined, {
       WebSocket: createWebSocketClass({
         rejectUnauthorized: false,
@@ -84,7 +92,12 @@ export class LGTVHandler {
     prefix = `ssap://`
   ): Promise<LGWebSocketResponse> {
     return new Promise(async (resolve, reject) => {
-      if (type === "request") await this.waitForSocketOpen(5000);
+      if (type === "request")
+        try {
+          await this.waitForSocketOpen(5000);
+        } catch (error) {
+          return reject(error);
+        }
 
       const id = uuidv4();
       const listener = (event: MessageEvent) => {
@@ -115,11 +128,14 @@ export class LGTVHandler {
   }
 
   private async register() {
-    const keys = await readdir(`${cwd()}/keys`);
+    await mkdir(this.keyPath, {
+      recursive: true,
+    });
+    const keys = await readdir(this.keyPath);
     const keyFile = keys.find((f) => f === this.ip);
 
     if (keyFile) {
-      const key = await readFile(`${cwd()}/keys/${keyFile}`, {
+      const key = await readFile(`${this.keyPath}/${keyFile}`, {
         encoding: "utf-8",
       });
       pairing["client-key"] = key;
@@ -172,7 +188,7 @@ export class LGTVHandler {
         if (this.isConnected && this.isRegistered) {
           resolve();
         } else if (elapsed >= timeout) {
-          reject(new Error(`Socket did not open within ${timeout}ms`));
+          reject(`Socket did not open within ${timeout}ms`);
         } else {
           elapsed += interval;
           setTimeout(check, interval);
