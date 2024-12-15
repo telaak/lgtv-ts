@@ -6,6 +6,10 @@ TypeScript methods to command LG's WebOS TVs. Connects to the WebSocket endpoint
 
 A part of my mediacenter implementation, this is mostly for my personal use but made freely available to anyone. PRs welcome, fork it, do whatever. LG's TVs moved to self signed certs on their TV's, which most clients reject. After fiddling with already existing and having to resort to node ignoring all TLS errors, I decided to write my own. This is still WIP, the return types are not all mapped out.
 
+## Docker
+
+See here: https://github.com/telaak/lgtv-ts/tree/fastify-docker#readme
+
 ## Installation
 
 `npm i lgtv-ts`
