@@ -1,6 +1,6 @@
 services:
   lgtv-ts:
-    image: fastify
+    image: telaaks/lgtv-ts-fastify
     container_name: lgtv-ts
     ports:
       - 3000:3000
