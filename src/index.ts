@@ -31,7 +31,7 @@ const swaggerOptions: FastifyDynamicSwaggerOptions = {
 };
 
 const swaggerUiOptions: FastifySwaggerUiOptions = {
-  routePrefix: "/documentation",
+  routePrefix: "/docs",
   uiConfig: {
     docExpansion: "full",
     deepLinking: true,
@@ -42,7 +42,8 @@ export const tvHandler = new LGTVHandler(
   process.env.TV_PROTOCOL as string,
   process.env.TV_IP as string,
   Number(process.env.TV_PORT as string),
-  process.env.TV_MAC as string
+  process.env.TV_MAC as string,
+  process.env.KEY_PATH as string
 );
 
 if (process.env.AUDIO_CHECKER) {
@@ -214,8 +215,10 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              appName: { type: "string" },
-              version: { type: "string" },
+              appId: { type: "string" },
+              returnValue: { type: "boolean" },
+              windowId: { type: "string" },
+              processId: { type: "string" },
             },
           },
         },
@@ -224,7 +227,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const appInfo = await tvHandler.getCurrentAppInfo();
-        return reply.send(appInfo);
+        return reply.send(appInfo.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -239,8 +242,17 @@ fastify.register((app, options, done) => {
         description: "Get the current sound output device on the TV.",
         response: {
           200: {
-            type: "string",
-            description: "Current sound output device (e.g., HDMI, ARC).",
+            type: "object",
+            properties: {
+              soundOutput: {
+                description:
+                  "Current sound output device (e.g., external_arc, internal_speakers).",
+                type: "string",
+              },
+              returnValue: {
+                type: "boolean",
+              },
+            },
           },
         },
       },
@@ -248,7 +260,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const soundOutput = await tvHandler.getSoundOutput();
-        return reply.send(soundOutput);
+        return reply.send(soundOutput.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -263,8 +275,53 @@ fastify.register((app, options, done) => {
         description: "Get the list of available input sources on the TV.",
         response: {
           200: {
-            type: "array",
-            items: { type: "string" },
+            type: "object",
+            properties: {
+              returnValue: {
+                type: "boolean",
+              },
+              devices: {
+                type: "array",
+                items: {
+                  id: {
+                    type: "string",
+                  },
+                  label: {
+                    type: "string",
+                  },
+                  port: {
+                    type: "number",
+                  },
+                  connected: {
+                    type: "boolean",
+                  },
+                  appId: {
+                    type: "string",
+                  },
+                  icon: {
+                    type: "string",
+                  },
+                  forceIcon: {
+                    type: "boolean",
+                  },
+                  modified: {
+                    type: "boolean",
+                  },
+                  lastUniqueId: {
+                    type: "number",
+                  },
+                  hdmiPlugIn: {
+                    type: "boolean",
+                  },
+                  subcount: {
+                    type: "number",
+                  },
+                  favorite: {
+                    type: "boolean",
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -272,7 +329,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const inputs = await tvHandler.getInputs();
-        return reply.send(inputs);
+        return reply.send(inputs.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -295,14 +352,6 @@ fastify.register((app, options, done) => {
           },
           required: ["inputId"],
         },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-            },
-          },
-        },
       },
     },
     async (request: FastifyRequest<{ Body: { inputId: string } }>, reply) => {
@@ -322,20 +371,12 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Stop the audio checker on the TV.",
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-            },
-          },
-        },
       },
     },
     async (request, reply) => {
       try {
-        const response = await tvHandler.stopAudioChecker();
-        return reply.send(response);
+        const response = tvHandler.stopAudioChecker();
+        return reply.send("OK");
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -359,21 +400,13 @@ fastify.register((app, options, done) => {
           },
           required: ["output"],
         },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-            },
-          },
-        },
       },
     },
     async (request: FastifyRequest<{ Body: { output: string } }>, reply) => {
       const { output } = request.body;
       try {
         const response = await tvHandler.audioChecker(output as SoundOutput);
-        return reply.send(response);
+        return reply.send("OK");
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -386,14 +419,6 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Toggle the power state of the TV.",
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-            },
-          },
-        },
       },
     },
     async (request, reply) => {
@@ -422,14 +447,6 @@ fastify.register((app, options, done) => {
           },
           required: ["output"],
         },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-            },
-          },
-        },
       },
     },
     async (request: FastifyRequest<{ Body: { output: string } }>, reply) => {
@@ -453,7 +470,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -462,7 +479,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.volumeDown();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -479,7 +496,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -488,7 +505,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.volumeUp();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -505,7 +522,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -514,7 +531,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.mute();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -531,7 +548,22 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              audioStatus: { type: "string" },
+              returnValue: { type: "boolean" },
+              callerId: { type: "string" },
+              mute: { type: "boolean" },
+              volume: { type: "number" },
+              volumeStatus: {
+                type: "object",
+                properties: {
+                  activeStatus: { type: "boolean" },
+                  adjustVolume: { type: "boolean" },
+                  maxVolume: { type: "number" },
+                  muteStatus: { type: "boolean" },
+                  volume: { type: "number" },
+                  mode: { type: "string" },
+                  soundOutput: { type: "string" },
+                },
+              },
             },
           },
         },
@@ -540,7 +572,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const audioStatus = await tvHandler.getAudioStatus();
-        return reply.send(audioStatus);
+        return reply.send(audioStatus.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -584,7 +616,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -593,7 +625,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.sendEnter();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -610,7 +642,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -619,7 +651,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.sendDelete();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -643,7 +675,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -653,7 +685,7 @@ fastify.register((app, options, done) => {
       const { text } = request.body;
       try {
         const response = await tvHandler.insertText(text);
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -670,7 +702,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -679,7 +711,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.set3DOn();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -696,7 +728,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -705,7 +737,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.set3DOff();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -718,15 +750,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get the software version and details of the TV.",
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              version: { type: "string" },
-              build: { type: "string" },
-            },
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -745,12 +769,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get a list of apps installed on the TV.",
-        response: {
-          200: {
-            type: "array",
-            items: { type: "string" },
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -783,7 +802,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -793,7 +812,7 @@ fastify.register((app, options, done) => {
       const { appId } = request.body;
       try {
         const response = await tvHandler.launchApp(appId);
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -810,7 +829,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -819,7 +838,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.mediaPlay();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -836,7 +855,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -845,7 +864,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.mediaStop();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -862,7 +881,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -871,7 +890,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.mediaPause();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -888,7 +907,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -897,7 +916,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.mediaRewind();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -914,7 +933,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -923,7 +942,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.mediaFastForward();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -940,7 +959,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -949,7 +968,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.mediaClose();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -976,7 +995,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -986,7 +1005,7 @@ fastify.register((app, options, done) => {
       const { message } = request.body;
       try {
         const response = await tvHandler.showToast(message);
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1013,7 +1032,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1023,7 +1042,7 @@ fastify.register((app, options, done) => {
       const { toastId } = request.body;
       try {
         const response = await tvHandler.closeToast(toastId);
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1047,7 +1066,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1057,7 +1076,7 @@ fastify.register((app, options, done) => {
       const { message } = request.body;
       try {
         const response = await tvHandler.showAlert(message);
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1084,7 +1103,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1094,7 +1113,7 @@ fastify.register((app, options, done) => {
       const { alertId } = request.body;
       try {
         const response = await tvHandler.closeAlert(alertId);
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1111,7 +1130,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1120,7 +1139,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.closeLauncher();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1140,14 +1159,7 @@ fastify.register((app, options, done) => {
           },
           required: ["id"],
         },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              state: { type: "string", description: "State of the app." },
-            },
-          },
-        },
+        // TODO: response
       },
     },
     async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
@@ -1167,14 +1179,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get the system information from the TV.",
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              info: { type: "object", description: "System information." },
-            },
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -1193,17 +1198,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get the current system settings from the TV.",
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              settings: {
-                type: "object",
-                description: "Current system settings.",
-              },
-            },
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -1226,7 +1221,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1235,7 +1230,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.channelDown();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1252,7 +1247,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1261,7 +1256,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.channelUp();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1274,12 +1269,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get the list of available TV channels.",
-        response: {
-          200: {
-            type: "array",
-            items: { type: "string" },
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -1305,15 +1295,7 @@ fastify.register((app, options, done) => {
           },
           required: ["channelId"],
         },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              channelId: { type: "string" },
-              info: { type: "object" },
-            },
-          },
-        },
+        // TODO: response
       },
     },
     async (
@@ -1336,15 +1318,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get the current active TV channel.",
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              channelId: { type: "string" },
-              info: { type: "object" },
-            },
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -1377,7 +1351,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1387,7 +1361,7 @@ fastify.register((app, options, done) => {
       const { channelId } = request.body;
       try {
         const response = await tvHandler.setChannel(channelId);
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1404,7 +1378,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1413,7 +1387,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.takeScreenshot();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1430,7 +1404,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1439,7 +1413,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.closeWebApp();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1452,13 +1426,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get the current input socket in use on the TV.",
-        response: {
-          200: {
-            type: "string",
-            description:
-              "The current input socket being used (e.g., HDMI1, HDMI2).",
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -1477,17 +1445,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get the current calibration settings from the TV.",
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              calibration: {
-                type: "object",
-                description: "Current calibration settings.",
-              },
-            },
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -1520,7 +1478,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1530,7 +1488,7 @@ fastify.register((app, options, done) => {
       const { calibration } = request.body;
       try {
         const response = await tvHandler.setCalibration(calibration);
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1547,7 +1505,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1556,7 +1514,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.turnOffScreen();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1573,7 +1531,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1582,7 +1540,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.turnOnScreen();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
@@ -1595,17 +1553,7 @@ fastify.register((app, options, done) => {
     {
       schema: {
         description: "Get the current configuration settings of the TV.",
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              configs: {
-                type: "object",
-                description: "Current configuration settings.",
-              },
-            },
-          },
-        },
+        // TODO: response
       },
     },
     async (request, reply) => {
@@ -1728,7 +1676,7 @@ fastify.register((app, options, done) => {
           200: {
             type: "object",
             properties: {
-              success: { type: "boolean" },
+              returnValue: { type: "boolean" },
             },
           },
         },
@@ -1737,7 +1685,7 @@ fastify.register((app, options, done) => {
     async (request, reply) => {
       try {
         const response = await tvHandler.reboot();
-        return reply.send(response);
+        return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
       }
