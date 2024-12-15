@@ -1,7 +1,7 @@
 import { SoundOutput } from "./enums";
 
 export interface LGWebSocketResponse {
-  type: "response" | "registered";
+  type: "response" | "registered" | "prompt" | "error";
   id: string;
   payload?: any;
 }

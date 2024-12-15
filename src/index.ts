@@ -163,13 +163,17 @@ export class LGTVHandler {
        */
       const listener = (event: MessageEvent) => {
         try {
-          const json = JSON.parse(event.data.toString());
+          const json: LGWebSocketResponse = JSON.parse(event.data.toString());
           if (json.id && json.id === id) {
             this.ws.removeEventListener("message", listener);
-            resolve(json);
+            if (json.type === "error") {
+              return reject(json);
+            } else {
+              return resolve(json);
+            }
           }
         } catch (error) {
-          reject(error);
+          return reject(error);
         }
       };
       this.ws.addEventListener("message", listener);
