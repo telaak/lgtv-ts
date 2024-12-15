@@ -405,8 +405,8 @@ export class LGTVHandler {
         return this.request(Endpoint.POWER_OFF);
       }
     } else {
-      console.log(`sending WOL to ${this.macAddress}`);
-      return promisedWol(this.macAddress);
+      console.log(`sending WOL to ${this.ip} ${this.macAddress}`);
+      return promisedWol(this.macAddress, this.ip);
     }
   }
 

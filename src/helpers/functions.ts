@@ -1,18 +1,18 @@
 const wol = require("node-wol");
 
-export const promisedWol = (macAddress: string, address?: string) => {
+export const promisedWol = (macAddress: string, address: string) => {
   return new Promise((resolve, reject) => {
     wol.wake(
       macAddress,
       {
         address,
-        port: 7,
+        port: 9,
       },
       function (error: any) {
         if (error) {
           reject(error);
         } else {
-          resolve(`WOL sent to ${macAddress}`);
+          resolve(`WOL sent to ${address} ${macAddress}`);
         }
       }
     );
