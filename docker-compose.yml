@@ -1,0 +1,21 @@
+services:
+  lgtv-ts:
+    image: fastify
+    container_name: lgtv-ts
+    ports:
+      - 3000:3000
+      # Needed for sending Wake-On-Lan packets
+      - 9:9/udp
+    volumes:
+      - keys:/app/keys
+    environment:
+      - TV_PROTOCOL=wss
+      - TV_IP=192.168.0.57
+      - TV_PORT=3001
+      - TV_MAC=F8:B9:5A:7B:5D:7C
+      # Point this to the address you're using to access the container
+      # Used for the documentation server's target for testing endpoints
+      # - SERVER_URL=http://192.168.0.1:3000
+
+volumes:
+  keys:
