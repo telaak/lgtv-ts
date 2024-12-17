@@ -442,11 +442,25 @@ export class LGTVHandler {
   }
 
   /**
-   * Toggles the mute state of the TV.
-   * @returns A promise with the mute response.
+   * Toggles the TV's audio mute
+   * @returns 
    */
-  async mute() {
-    return this.request(Endpoint.SET_MUTE) as Promise<MuteResponse>;
+
+  async toggleMute() {
+    const audioStatus = await this.getAudioStatus();
+    return this.setMute(!audioStatus.payload.mute);
+  }
+
+  /**
+   * Sets the TV's audio mute status
+   * @param mute
+   * @returns
+   */
+
+  async setMute(mute: boolean) {
+    return this.request(Endpoint.SET_MUTE, {
+      mute,
+    }) as Promise<MuteResponse>;
   }
 
   /**
