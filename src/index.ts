@@ -512,9 +512,9 @@ fastify.register((app, options, done) => {
     }
   );
 
-  // Method 15: mute
+  // Method 15: toggle mute
   app.post(
-    "/mute",
+    "/toggle-mute",
     {
       schema: {
         description: "Mute or unmute the TV.",
@@ -530,7 +530,43 @@ fastify.register((app, options, done) => {
     },
     async (request, reply) => {
       try {
-        const response = await tvHandler.mute();
+        const response = await tvHandler.toggleMute();
+        return reply.send(response.payload);
+      } catch (error) {
+        return reply.status(500).send({ error: error });
+      }
+    }
+  );
+
+  app.post(
+    "/set-mute",
+    {
+      schema: {
+        description: "Mute or unmute the TV.",
+        body: {
+          type: "object",
+          properties: {
+            mute: {
+              type: "boolean",
+              description: "Set the TV's mute status to",
+            },
+          },
+          required: ["mute"],
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              returnValue: { type: "boolean" },
+            },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest<{ Body: { mute: boolean } }>, reply) => {
+      try {
+        const { mute } = request.body;
+        const response = await tvHandler.setMute(mute);
         return reply.send(response.payload);
       } catch (error) {
         return reply.status(500).send({ error: error });
